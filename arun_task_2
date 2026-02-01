@@ -1,0 +1,96 @@
+#include "main.h"
+#include "cmsis_os2.h"
+#include "application.h"
+#include "controller.h"
+#include "peripherals.h"
+
+/* Global variables ----------------------------------------------------------*/
+int32_t reference, velocity, control;
+uint32_t millisec;
+
+/* Thread prototypes ---------------------------------------------------------*/
+static void app_ctrl(void *argument);
+static void app_ref(void *argument);
+static void app_main(void *argument);
+
+/* Thread attributes ---------------------------------------------------------*/
+static const osThreadAttr_t app_ctrl_attr = {
+    .name = "app_ctrl",
+    .priority = osPriorityHigh   // control loop must preempt reference
+};
+
+static const osThreadAttr_t app_ref_attr = {
+    .name = "app_ref",
+    .priority = osPriorityLow
+};
+
+static const osThreadAttr_t app_main_attr = {
+    .name = "app_main",
+    .priority = osPriorityBelowNormal
+};
+
+/* Setup --------------------------------------------------------------------*/
+void Application_Setup(void)
+{
+    reference = 2000;
+    velocity  = 0;
+    control   = 0;
+    millisec  = 0;
+
+    Peripheral_GPIO_EnableMotor();
+    Controller_Reset();
+}
+
+/* RTOS init (CALLED BY main.c) ---------------------------------------------*/
+void MX_RTOS_Init(void)
+{
+    Application_Setup();
+
+    osThreadNew(app_ctrl, NULL, &app_ctrl_attr);
+    osThreadNew(app_ref,  NULL, &app_ref_attr);
+    osThreadNew(app_main, NULL, &app_main_attr);
+}
+
+/* Threads ------------------------------------------------------------------*/
+static void app_ctrl(void *argument)
+{
+    (void)argument;
+
+    for (;;)
+    {
+        millisec = Main_GetTickMillisec();
+
+        velocity = Peripheral_Encoder_CalculateVelocity(millisec);
+        control  = Controller_PIController(&reference, &velocity, &millisec);
+        Peripheral_PWM_ActuateMotor(control);
+
+        osDelay(10);
+    }
+}
+
+static void app_ref(void *argument)
+{
+    (void)argument;
+
+    for (;;)
+    {
+        reference = -reference;
+        osDelay(4000);
+    }
+}
+
+static void app_main(void *argument)
+{
+    (void)argument;
+
+    for (;;)
+    {
+        Application_Loop();
+    }
+}
+
+/* Application loop (PASSIVE BY DESIGN) -------------------------------------*/
+void Application_Loop(void)
+{
+    osThreadFlagsWait(0x01, osFlagsWaitAll, osWaitForever);
+}
