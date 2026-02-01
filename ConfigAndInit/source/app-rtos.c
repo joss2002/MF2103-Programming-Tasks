@@ -1,7 +1,7 @@
 /**
  * Handles the application, of controlling motor speed, through threads.
  *
- * @authors Josefine Nyholm, 
+ * @authors Josefine Nyholm, Nils Kiefer, Arun
  * 
  * @cite https://arm-software.github.io/CMSIS-RTX/latest/rtos2_tutorial.html#rtos2_tutorial_threads
  * @cite T. Martin and M. Rogers, The designer's guide to the cortex-m processor family, Second edition. 2016.
@@ -18,11 +18,13 @@
 int32_t reference, velocity, control;
 uint32_t millisec;
 
-
-
 osThreadId_t main_id, ctrl_id, ref_id;
 
 /* Functions -----------------------------------------------------------------*/
+
+void init_threads(void);
+	
+/* Threads -------------------------------------------------------------------*/
 
 static void app_main(void *arg);
 void app_ctrl(void *arg);
@@ -37,17 +39,20 @@ static const osThreadAttr_t threadAttr_main = {
 static const osThreadAttr_t threadAttr_ctrl = {
 	.name = "app_ctrl",
 	.stack_size = 128*4,         // ~24 bytes local variables, ~32 bytes RTOS-functions, ~232 bytes function calls, call-stack + safety ~100 bytes
-	.priority = osPriorityNormal
+	.priority = osPriorityHigh
 };
 
 static const osThreadAttr_t threadAttr_ref = {
 	.name = "app_ref",
 	.stack_size = 128*2,				 // ~8 bytes local variables, ~100-150 bytes RTOS-function, call-stack + safety ~100 bytes
-	.priority = osPriorityNormal
+	.priority = osPriorityBelowNormal
 };
+
+/* Functions -----------------------------------------------------------------*/
  
- 
-/* Run setup needed for all periodic tasks */
+/**
+ * Initializes global variables, motor, controller and threads
+ */
 void Application_Setup()
 {
   // Reset global variables
@@ -62,21 +67,31 @@ void Application_Setup()
   // Initialize controller
   Controller_Reset();
 	
-	osKernelInitialize();
-	main_id = osThreadNew(app_main, NULL, &threadAttr_main);
-	ctrl_id = osThreadNew(app_ctrl, NULL, &threadAttr_ctrl);
-	ref_id  = osThreadNew(app_ref, NULL, &threadAttr_ref);
-	osKernelStart();
+	init_threads();
 }
 
-/* Define what to do in the infinite loop */
+/**
+ * Keeps the application waiting
+ */
 void Application_Loop()
  {
    // Do nothing
    osThreadFlagsWait(0x01, osFlagsWaitAll, osWaitForever);
  }
  
-/* Thread Functions -----------------------------------------------------------------*/
+/* Thread Functions -----------------------------------------------------------*/
+ 
+ /**
+ * Initializes threads
+ */
+void init_threads(void)
+{
+	osKernelInitialize();
+	main_id = osThreadNew(app_main, NULL, &threadAttr_main);
+	ctrl_id = osThreadNew(app_ctrl, NULL, &threadAttr_ctrl);
+	ref_id  = osThreadNew(app_ref, NULL, &threadAttr_ref);
+	osKernelStart();
+}
 
  /**
   * Runs additional setup and calls Application_loop() indefinetly
