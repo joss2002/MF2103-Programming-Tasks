@@ -31,18 +31,27 @@ static void app_main(void *arg);
 void app_ctrl(void *arg);
 void app_ref(void *arg);
 
+/**
+ * Defines attributes for main_id and app_main()
+ */
 static const osThreadAttr_t threadAttr_main = {
 	.name       = "app_main",
 	.stack_size = 128*4,         // Application_Loop call + waiting for flags, small call-stack => 256 bytes, with margin => 512 bytes
 	.priority   = osPriorityNormal
 };
 
+/**
+ * Defines attributes for ctrl_id and app_ctrl()
+ */
 static const osThreadAttr_t threadAttr_ctrl = {
 	.name       = "app_ctrl",
 	.stack_size = 128*4,       // ~24 bytes local variables, ~32 bytes RTOS-functions, ~232 bytes function calls, call-stack + safety ~100 bytes
 	.priority   = osPriorityHigh
 };
 
+/**
+ * Defines attributes for ref_id and app_ref()
+ */
 static const osThreadAttr_t threadAttr_ref = {
 	.name       = "app_ref",
 	.stack_size = 128*2,              // ~8 bytes local variables, ~100-150 bytes RTOS-function, call-stack + safety ~100 bytes
