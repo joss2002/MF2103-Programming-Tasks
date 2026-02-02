@@ -1,6 +1,0 @@
-Dependencies for Project 'ConfigAndInit', Target 'Target_1': (DO NOT MODIFY !)
-CompilerVersion: 6220000::V6.22::ARMCLANG
-F (C:/Users/josef/AppData/Local/Arm/Packs/Keil/ARM_Compiler/1.7.2/Source/retarget_io.c)(0x696E5BC1)()
-F (C:/Users/josef/AppData/Local/Arm/Packs/Keil/STM32L4xx_DFP/2.7.0/MDK/CubeMX/run_STM32CubeMX.c)(0x696A57EB)()
-F (RTE/Device/STM32L476RGTx/startup_stm32l476xx.s)(0x696A57EA)()
-F (RTE/Device/STM32L476RGTx/system_stm32l4xx.c)(0x696A57EA)()
