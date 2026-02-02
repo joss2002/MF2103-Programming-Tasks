@@ -15,21 +15,20 @@
 
 /* Global variables ----------------------------------------------------------*/
 
-int32_t reference, velocity, control;
-uint32_t millisec;
-osThreadId_t main_id, ctrl_id, ref_id; //< Defines thread IDs
-osTimerId_t ctrl_timer;                //< Defines callback timer for ctrl_id
-osTimerId_t ref_timer;  							 //< Defines callback timer for ref_id
+static int32_t reference, velocity, control;
+static uint32_t millisec;
+static osThreadId_t main_id, ctrl_id, ref_id; //< Defines thread IDs
+static osTimerId_t ctrl_timer, ref_timer;     //< Defines callback timers
 
 /* Function/Thread declaration -----------------------------------------------*/
 
-void timerCallback(void *arg); // Callback timer function
-void init_virtualTimers(void);
+static void timerCallback(void *arg); // Callback timer function
+static void init_virtualTimers(void);
 
-void init_threads(void);
+static void init_threads(void);
 static void app_main(void *arg);
-void app_ctrl(void *arg);
-void app_ref(void *arg);
+static void app_ctrl(void *arg);
+static void app_ref(void *arg);
 
 /**
  * Defines attributes for main_id and app_main()
@@ -93,7 +92,7 @@ void Application_Loop()
 /**
  * Initializes the threads virtual timers to call the callback function periodically.
  */
-void init_virtualTimers(void)
+static void init_virtualTimers(void)
 {
 	ctrl_timer = osTimerNew(timerCallback, osTimerPeriodic, ctrl_id, NULL); // Sets a periodic timer for app_ctrl to call the callback function
 	ref_timer  = osTimerNew(timerCallback, osTimerPeriodic, ref_id, NULL);  // Sets a periodic timer for app_ref to call the callback function
@@ -111,7 +110,7 @@ void init_virtualTimers(void)
  *
  * @param arg - Thread ID
  */
-void timerCallback(void *arg)
+static void timerCallback(void *arg)
 {
   osThreadFlagsSet((osThreadId_t)arg, 0x01);					// Flags the correct thread through thread ID
 }
@@ -121,7 +120,7 @@ void timerCallback(void *arg)
 /**
  * Initializes threads
  */
-void init_threads(void)
+static void init_threads(void)
 {
 	main_id = osThreadNew(app_main, NULL, &threadAttr_main);
 	ctrl_id = osThreadNew(app_ctrl, NULL, &threadAttr_ctrl);
@@ -149,7 +148,7 @@ __NO_RETURN static void app_main(void *arg)
  * @param arg - Thread argument
  */
 /*
-__NO_RETURN void app_ctrl(void *arg)
+__NO_RETURN static void app_ctrl(void *arg)
 {
 	uint32_t tickDelay = (PERIOD_CTRL * osKernelGetTickFreq()) / 1000; // Calculates amount of ticks representing the required period in ms
 	
@@ -178,7 +177,7 @@ __NO_RETURN void app_ctrl(void *arg)
  * @param arg - Thread argument
  */
 /*
-__NO_RETURN void app_ref(void *arg)
+__NO_RETURN static void app_ref(void *arg)
 {
 	uint32_t tickDelay = (PERIOD_REF * osKernelGetTickFreq()) / 1000; // Calculates amount of ticks representing the required period in ms
 	
@@ -197,7 +196,7 @@ __NO_RETURN void app_ref(void *arg)
  *
  * @param arg - Thread argument
  */
-__NO_RETURN void app_ctrl(void *arg)
+__NO_RETURN static void app_ctrl(void *arg)
 {	
 	for(;;)
 	{
@@ -217,7 +216,7 @@ __NO_RETURN void app_ctrl(void *arg)
  *
  * @param arg - Thread argument
  */
-__NO_RETURN void app_ref(void *arg)
+__NO_RETURN static void app_ref(void *arg)
 {
 	for(;;)
 	{
