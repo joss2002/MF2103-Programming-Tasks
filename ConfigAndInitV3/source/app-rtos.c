@@ -64,8 +64,11 @@ void Application_Setup()
 	
   Peripheral_GPIO_EnableMotor(); // Initialise hardware
   Controller_Reset();            // Initialize controller	
+	
+	osKernelInitialize();
 	init_threads();                // Initializes threads
-	init_virtualTimers();			  	 // Initializes virtual timers
+	init_virtualTimers();			  	 // Initializes and starts virtual timers
+	osKernelStart();
 }
 
 /**
@@ -111,13 +114,9 @@ void timerCallback(void *arg)
  */
 void init_threads(void)
 {
-	osKernelInitialize();
-	
 	main_id = osThreadNew(app_main, NULL, &threadAttr_main);
 	ctrl_id = osThreadNew(app_ctrl, NULL, &threadAttr_ctrl);
 	ref_id  = osThreadNew(app_ref, NULL, &threadAttr_ref);
-	
-	osKernelStart();
 }
 
 /**
