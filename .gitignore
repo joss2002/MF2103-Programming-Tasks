@@ -1,0 +1,23 @@
+# Keil / ARM
+Objects/
+Listings/
+DebugConfig/
+RTE/
+STM32CubeMX/
+
+*.axf
+*.map
+*.lst
+*.o
+*.d
+*.scvd
+*.sfd
+*.sfr
+
+*.uvguix.*
+*.uvoptx
+*.uvprojx
+
+# Windows junk
+Thumbs.db
+.DS_Store
