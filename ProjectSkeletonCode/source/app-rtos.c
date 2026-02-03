@@ -59,6 +59,27 @@ static void scheduler_timer_cb(void *argument)
     }
 }
 
+static void Timer2_Init_10ms(void)
+{
+    // Enable TIM2 clock
+    RCC->APB1ENR1 |= RCC_APB1ENR1_TIM2EN;
+
+    // Reset timer
+    TIM2->CR1 = 0;
+    TIM2->PSC = 7999;   // Prescaler
+    TIM2->ARR = 49;      // Auto-reload ? 10 ms
+    TIM2->EGR = TIM_EGR_UG;
+
+    // Enable update interrupt
+    TIM2->DIER |= TIM_DIER_UIE;
+
+    // Enable timer
+    TIM2->CR1 |= TIM_CR1_CEN;
+
+    // Enable IRQ in NVIC
+    NVIC_SetPriority(TIM2_IRQn, 5);
+    NVIC_EnableIRQ(TIM2_IRQn);
+}
 
 /* Setup --------------------------------------------------------------------*/
 void Application_Setup(void)
@@ -76,15 +97,9 @@ void Application_Setup(void)
 		ref_tid  = osThreadNew(app_ref,  NULL, &app_ref_attr);
 		osThreadNew(app_main, NULL, &app_main_attr);
 	
-	/* The following section is for timer flag*/
-	//		scheduler_timer = osTimerNew(
-	//        scheduler_timer_cb,
-	//        osTimerPeriodic,
-	//        NULL,
-	//        NULL
-	//    );
-
-    osTimerStart(scheduler_timer, 10); // 10 ms base tick
+		// Initialize hardware timer BEFORE kernel start
+    Timer2_Init_10ms();
+	
 		osKernelStart();        //  scheduler takes over
 }
 
@@ -98,12 +113,12 @@ static void app_ctrl(void *argument)
     for (;;)
     {
         
-				//osThreadFlagsWait(CTRL_FLAG, osFlagsWaitAny, osWaitForever);
+				osThreadFlagsWait(CTRL_FLAG, osFlagsWaitAny, osWaitForever);
 				millisec = Main_GetTickMillisec();
         velocity = Peripheral_Encoder_CalculateVelocity(millisec);
         control  = Controller_PIController(&reference, &velocity, &millisec);
         Peripheral_PWM_ActuateMotor(control);
-        osDelay(10);
+        //osDelay(10);
     }
 }
 
@@ -113,9 +128,9 @@ static void app_ref(void *argument)
 
     for (;;)
     {
-			//osThreadFlagsWait(REF_FLAG, osFlagsWaitAny, osWaitForever);	
+			osThreadFlagsWait(REF_FLAG, osFlagsWaitAny, osWaitForever);	
 			reference = -reference;
-      osDelay(4000);
+      //osDelay(4000);
     }
 }
 
@@ -134,3 +149,20 @@ void Application_Loop(void)
 {
     osThreadFlagsWait(0x01, osFlagsWaitAll, osWaitForever);
 }
+
+void TIM2_IRQHandler(void)
+{
+    static uint32_t tick = 0;
+
+    if (TIM2->SR & TIM_SR_UIF) {
+        TIM2->SR &= ~TIM_SR_UIF;   // Clear update interrupt flag
+        tick++;
+
+        osThreadFlagsSet(ctrl_tid, CTRL_FLAG);
+
+        if (tick % 400 == 0) {     // 400 × 10 ms = 4 s
+            osThreadFlagsSet(ref_tid, REF_FLAG);
+        }
+    }
+}
+

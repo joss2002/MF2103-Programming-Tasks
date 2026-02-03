@@ -129,8 +129,8 @@ int32_t Peripheral_Encoder_CalculateVelocity(uint32_t ms) {
     static uint8_t buf_count = 0;
 
     // Rolling sums for the active window.
-    static int32_t sum_delta_count = 0;
-    static uint32_t sum_delta_ms = 0;
+//    static int32_t sum_delta_count = 0;
+//    static uint32_t sum_delta_ms = 0;
 
     // Last calculated velocity (RPM).
     static int32_t vel_rpm = 0;
@@ -148,8 +148,8 @@ int32_t Peripheral_Encoder_CalculateVelocity(uint32_t ms) {
         }
         buf_index = 0;
         buf_count = 0;
-        sum_delta_count = 0;
-        sum_delta_ms = 0;
+        //sum_delta_count = 0;
+        //sum_delta_ms = 0;
         vel_rpm = 0;
         return 0;
     }
@@ -163,57 +163,65 @@ int32_t Peripheral_Encoder_CalculateVelocity(uint32_t ms) {
     // Signed subtraction handles counter wrap-around correctly.
     const int16_t delta_count = (int16_t)(count - prev_count);
     prev_count = count;
-
-    // Remove old sample
-    sum_delta_count -= (int32_t)delta_count_buf[buf_index];
-    sum_delta_ms -= (uint32_t)delta_ms_buf[buf_index];
-
-    // Add new sample
-    delta_count_buf[buf_index] = delta_count;
-    if (delta_ms > 65535U) {
-        delta_ms_buf[buf_index] = 65535U;
-    } else {
-        delta_ms_buf[buf_index] = (uint16_t)delta_ms;
-    }
-    sum_delta_count += (int32_t)delta_count_buf[buf_index];
-    sum_delta_ms += (uint32_t)delta_ms_buf[buf_index];
-
-    buf_index++;
-    if (buf_index >= BUF_N)
-        buf_index = 0;
-    if (buf_count < BUF_N)
-        buf_count++;
-
-    // Trim to approx g_vel_window_ms by removing oldest samples.
-    while (sum_delta_ms > (uint32_t)g_vel_window_ms && buf_count > 1) {
-        sum_delta_count -= (int32_t)delta_count_buf[buf_index];
-        sum_delta_ms -= (uint32_t)delta_ms_buf[buf_index];
-        delta_count_buf[buf_index] = 0;
-        delta_ms_buf[buf_index] = 0;
-
-        buf_index++;
-        if (buf_index >= BUF_N)
-            buf_index = 0;
-        buf_count--;
-    }
-
-    if (sum_delta_ms == 0U)
+		
+		const int64_t rpm_num = (int64_t)delta_count * 60000LL;
+    const int64_t rpm_den = (int64_t)ENCODER_COUNTS_PER_REV * (int64_t)delta_ms;
+		if (rpm_den == 0)
         return vel_rpm;
+		
+		vel_rpm = (int32_t)(rpm_num / rpm_den);
+		return vel_rpm;
 
-    // RPM estimate:
-    //   counts per window -> revolutions per minute
-    const int64_t rpm_num = (int64_t)sum_delta_count * 60000LL;
-    const int64_t rpm_den = (int64_t)ENCODER_COUNTS_PER_REV * (int64_t)sum_delta_ms;
-    if (rpm_den == 0)
-        return vel_rpm;
+//    // Remove old sample
+//    sum_delta_count -= (int32_t)delta_count_buf[buf_index];
+//    sum_delta_ms -= (uint32_t)delta_ms_buf[buf_index];
 
-    const int32_t rpm_est = (int32_t)(rpm_num / rpm_den);
+//    // Add new sample
+//    delta_count_buf[buf_index] = delta_count;
+//    if (delta_ms > 65535U) {
+//        delta_ms_buf[buf_index] = 65535U;
+//    } else {
+//        delta_ms_buf[buf_index] = (uint16_t)delta_ms;
+//    }
+//    sum_delta_count += (int32_t)delta_count_buf[buf_index];
+//    sum_delta_ms += (uint32_t)delta_ms_buf[buf_index];
 
-    // Raw (unaveraged) velocity for debugging/Watch.
-    g_vel_raw_rpm = (int32_t)((int64_t)delta_count * 60000LL /
-                              ((int64_t)ENCODER_COUNTS_PER_REV * (int64_t)delta_ms));
+//    buf_index++;
+//    if (buf_index >= BUF_N)
+//        buf_index = 0;
+//    if (buf_count < BUF_N)
+//        buf_count++;
 
-    // Rolling average output (no extra IIR smoothing).
-    vel_rpm = rpm_est;
-    return vel_rpm;
+//    // Trim to approx g_vel_window_ms by removing oldest samples.
+//    while (sum_delta_ms > (uint32_t)g_vel_window_ms && buf_count > 1) {
+//        sum_delta_count -= (int32_t)delta_count_buf[buf_index];
+//        sum_delta_ms -= (uint32_t)delta_ms_buf[buf_index];
+//        delta_count_buf[buf_index] = 0;
+//        delta_ms_buf[buf_index] = 0;
+
+//        buf_index++;
+//        if (buf_index >= BUF_N)
+//            buf_index = 0;
+//        buf_count--;
+//    }
+
+//    if (sum_delta_ms == 0U)
+//        return vel_rpm;
+
+//    // RPM estimate:
+//    //   counts per window -> revolutions per minute
+//    const int64_t rpm_num = (int64_t)sum_delta_count * 60000LL;
+//    const int64_t rpm_den = (int64_t)ENCODER_COUNTS_PER_REV * (int64_t)sum_delta_ms;
+//    if (rpm_den == 0)
+//        return vel_rpm;
+
+//    const int32_t rpm_est = (int32_t)(rpm_num / rpm_den);
+
+//     Raw (unaveraged) velocity for debugging/Watch.
+//    g_vel_raw_rpm = (int32_t)((int64_t)delta_count * 60000LL /
+//                              ((int64_t)ENCODER_COUNTS_PER_REV * (int64_t)delta_ms));
+
+//    // Rolling average output (no extra IIR smoothing).
+//    vel_rpm = rpm_est;
+//    return vel_rpm;
 }
